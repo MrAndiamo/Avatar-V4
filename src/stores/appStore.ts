@@ -59,7 +59,7 @@ export const useAppStore = create<AppState>()((set) => ({
   // Debug
   showSkeleton: false,
   showWireframe: false,
-  showWebcam: true,
+  showWebcam: false,
   toggleSkeleton: () => set((s) => ({ showSkeleton: !s.showSkeleton })),
   toggleWireframe: () => set((s) => ({ showWireframe: !s.showWireframe })),
   toggleWebcam: () => set((s) => ({ showWebcam: !s.showWebcam })),

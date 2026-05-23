@@ -8,6 +8,7 @@ export function App() {
   const { videoRef, startWebcam, stopWebcam } = useWebcam()
   const { startTracking, stopTracking } = useFaceTracking(videoRef)
   const isWebcamActive = useAppStore((s) => s.isWebcamActive)
+  const showWebcam = useAppStore((s) => s.showWebcam)
 
   // AR mode is on whenever the webcam is active
   const arMode = isWebcamActive
@@ -20,7 +21,7 @@ export function App() {
         className="absolute inset-0 w-full h-full object-cover"
         style={{
           transform: 'scaleX(-1)',
-          opacity: isWebcamActive ? 1 : 0,
+          opacity: isWebcamActive && showWebcam ? 1 : 0,
           transition: 'opacity 0.3s',
         }}
         autoPlay

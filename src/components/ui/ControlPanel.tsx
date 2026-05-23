@@ -19,9 +19,11 @@ export function ControlPanel({
     isTrackingActive,
     showSkeleton,
     showWireframe,
+    showWebcam,
     vrmName,
     toggleSkeleton,
     toggleWireframe,
+    toggleWebcam,
     clearVRM,
   } = useAppStore()
 
@@ -60,6 +62,11 @@ export function ControlPanel({
           >
             {isWebcamActive ? 'Stop Camera' : 'Start Camera'}
           </button>
+          {isWebcamActive && (
+            <div className="mt-1.5">
+              <Toggle label="Show Background" value={showWebcam} onToggle={toggleWebcam} />
+            </div>
+          )}
         </section>
 
         {/* Tracking */}

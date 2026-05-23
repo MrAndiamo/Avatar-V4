@@ -1,5 +1,5 @@
-import { Suspense } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { Suspense, useEffect } from 'react'
+import { Canvas, useThree } from '@react-three/fiber'
 import { OrbitControls, GizmoHelper, GizmoViewport, Environment } from '@react-three/drei'
 import { VRMAvatar } from './VRMAvatar'
 import { useAppStore } from '../../stores/appStore'
@@ -8,18 +8,32 @@ interface AvatarSceneProps {
   arMode: boolean
 }
 
+// Controls WebGL clear color so the canvas is never recreated when arMode toggles.
+// alpha:true on the context is required for transparent compositing in AR mode.
+function SceneBackground({ arMode }: { arMode: boolean }) {
+  const { gl } = useThree()
+  useEffect(() => {
+    if (arMode) {
+      gl.setClearColor(0x000000, 0) // fully transparent
+    } else {
+      gl.setClearColor(0x0d0d1a, 1) // dark studio background
+    }
+  }, [arMode, gl])
+  return null
+}
+
 export function AvatarScene({ arMode }: AvatarSceneProps) {
   const vrmUrl = useAppStore((s) => s.vrmUrl)
 
   return (
     <Canvas
-      // Transparent background in AR mode so webcam shows through
-      gl={{ alpha: arMode, antialias: true }}
-      style={{ background: arMode ? 'transparent' : '#0d0d1a' }}
+      gl={{ alpha: true, antialias: true }}
+      style={{ background: 'transparent' }}
       // Camera at origin height, looking straight ahead — required for AR positioning math
       camera={{ position: [0, 0, 3], fov: 60, near: 0.01, far: 100 }}
       shadows
     >
+      <SceneBackground arMode={arMode} />
       <ambientLight intensity={arMode ? 1.0 : 0.6} />
       <directionalLight position={[5, 10, 5]} intensity={1.2} castShadow />
       <directionalLight position={[-5, 5, -3]} intensity={0.4} color="#6688ff" />
