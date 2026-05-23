@@ -4,45 +4,55 @@ import { OrbitControls, GizmoHelper, GizmoViewport, Environment } from '@react-t
 import { VRMAvatar } from './VRMAvatar'
 import { useAppStore } from '../../stores/appStore'
 
-export function AvatarScene() {
+interface AvatarSceneProps {
+  arMode: boolean
+}
+
+export function AvatarScene({ arMode }: AvatarSceneProps) {
   const vrmUrl = useAppStore((s) => s.vrmUrl)
 
   return (
     <Canvas
-      camera={{ position: [0, 1.4, 2.2], fov: 35 }}
-      style={{ background: '#0d0d1a' }}
+      // Transparent background in AR mode so webcam shows through
+      gl={{ alpha: arMode, antialias: true }}
+      style={{ background: arMode ? 'transparent' : '#0d0d1a' }}
+      // Camera at origin height, looking straight ahead — required for AR positioning math
+      camera={{ position: [0, 0, 3], fov: 60, near: 0.01, far: 100 }}
       shadows
-      gl={{ antialias: true }}
     >
-      <ambientLight intensity={0.6} />
+      <ambientLight intensity={arMode ? 1.0 : 0.6} />
       <directionalLight position={[5, 10, 5]} intensity={1.2} castShadow />
       <directionalLight position={[-5, 5, -3]} intensity={0.4} color="#6688ff" />
 
       <Environment preset="studio" />
 
-      <gridHelper args={[10, 20, '#2a2a3a', '#1a1a28']} position={[0, 0, 0]} />
+      {/* Grid only in non-AR mode */}
+      {!arMode && (
+        <gridHelper args={[10, 20, '#2a2a3a', '#1a1a28']} position={[0, 0, 0]} />
+      )}
 
-      <Suspense fallback={null}>
-        {vrmUrl && <VRMAvatar url={vrmUrl} />}
-      </Suspense>
-
-      {!vrmUrl && (
+      {/* Placeholder cube until VRM is loaded */}
+      {!vrmUrl && !arMode && (
         <mesh position={[0, 1.2, 0]}>
           <boxGeometry args={[0.5, 0.5, 0.5]} />
           <meshStandardMaterial color="#334466" wireframe />
         </mesh>
       )}
 
-      <OrbitControls
-        target={[0, 1.1, 0]}
-        minDistance={0.5}
-        maxDistance={8}
-        enablePan
-      />
+      <Suspense fallback={null}>
+        {vrmUrl && <VRMAvatar url={vrmUrl} />}
+      </Suspense>
 
-      <GizmoHelper alignment="bottom-right" margin={[60, 60]}>
-        <GizmoViewport />
-      </GizmoHelper>
+      {/* Only show orbit controls in non-AR mode */}
+      {!arMode && (
+        <OrbitControls target={[0, 1, 0]} minDistance={0.5} maxDistance={8} enablePan />
+      )}
+
+      {!arMode && (
+        <GizmoHelper alignment="bottom-right" margin={[60, 60]}>
+          <GizmoViewport />
+        </GizmoHelper>
+      )}
     </Canvas>
   )
 }
