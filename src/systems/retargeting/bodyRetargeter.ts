@@ -87,40 +87,44 @@ export function computeVRMTransform(
   const lm = result.landmarks[0] // normalized [0,1], Y-down
   if (lm.length < 25) return null
 
-  // Hip center — mirror X because webcam video is displayed mirrored
-  const hipX = 1 - (lm[23].x + lm[24].x) / 2
-  const hipY = (lm[23].y + lm[24].y) / 2
+  const lShoulder = lm[11], rShoulder = lm[12]
+  if ((lShoulder.visibility ?? 1) < 0.5 || (rShoulder.visibility ?? 1) < 0.5) return null
 
-  // Nose — mirror X
-  const noseX = 1 - lm[0].x
-  const noseY = lm[0].y
+  // Shoulder width as scale proxy — stable regardless of whether hips/legs are on screen.
+  // When you step back, shoulders get narrower → scale shrinks → character shrinks. Linear.
+  const shoulderWidthNorm = Math.abs(lShoulder.x - rShoulder.x)
+  if (shoulderWidthNorm < 0.02) return null
 
-  // Torso height in normalized screen coords
-  const torsoNorm = Math.max(0.01, hipY - noseY)
+  const fovRad = (camera.fov * Math.PI) / 180
+  const worldUnitsPerNDC = camera.position.z * Math.tan(fovRad / 2)
+
+  // VRM shoulder width at scale=1 in world units (empirically calibrated so that
+  // a person filling the frame naturally as a typical streamer produces scale ≈ 1).
+  // Derived: neutral shoulderWidthNorm ≈ 0.13 → worldWidth = 0.13 * 3.46 = 0.45
+  const VRM_SHOULDER_WORLD = 0.45
+  const shoulderWorldWidth = shoulderWidthNorm * 2 * worldUnitsPerNDC
+  const scale = Math.max(0.05, Math.min(4.0, shoulderWorldWidth / VRM_SHOULDER_WORLD))
 
   const raycaster = new THREE.Raycaster()
   const plane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0)
 
-  const ndcNoseX = noseX * 2 - 1
-  const ndcNoseY = -(noseY * 2 - 1)
-  raycaster.setFromCamera(new THREE.Vector2(ndcNoseX, ndcNoseY), camera)
+  // Nose for vertical head anchor — mirror X
+  const noseX = 1 - lm[0].x
+  const noseY = lm[0].y
+  raycaster.setFromCamera(new THREE.Vector2(noseX * 2 - 1, -(noseY * 2 - 1)), camera)
   const worldNose = new THREE.Vector3()
   if (!raycaster.ray.intersectPlane(plane, worldNose)) return null
 
-  const ndcHipX = hipX * 2 - 1
-  const ndcHipY = -(hipY * 2 - 1)
-  raycaster.setFromCamera(new THREE.Vector2(ndcHipX, ndcHipY), camera)
-  const worldHip = new THREE.Vector3()
-  if (!raycaster.ray.intersectPlane(plane, worldHip)) return null
+  // Shoulder center for horizontal position — mirror X
+  const centerX = 1 - (lShoulder.x + rShoulder.x) / 2
+  const centerY = (lShoulder.y + rShoulder.y) / 2
+  raycaster.setFromCamera(new THREE.Vector2(centerX * 2 - 1, -(centerY * 2 - 1)), camera)
+  const worldCenter = new THREE.Vector3()
+  if (!raycaster.ray.intersectPlane(plane, worldCenter)) return null
 
-  const fovRad = (camera.fov * Math.PI) / 180
-  const worldUnitsPerNDC = camera.position.z * Math.tan(fovRad / 2)
-  const torsoWorld = torsoNorm * 2 * worldUnitsPerNDC
-
-  const scale = Math.max(0.2, Math.min(3.0, torsoWorld / 0.8))
-
+  // VRM scene root Y: head bone is ~1.55 units above scene root at scale=1
   return {
-    position: new THREE.Vector3(worldHip.x, worldNose.y - 1.55 * scale, 0),
+    position: new THREE.Vector3(worldCenter.x, worldNose.y - 1.55 * scale, 0),
     scale,
   }
 }

@@ -29,10 +29,19 @@ const BLENDSHAPE_MAP: Record<string, string> = {
 const BLENDSHAPE_MULTIPLIERS: Record<string, number> = {
   blinkLeft: 1.3,
   blinkRight: 1.3,
-  aa: 1.5,
+  aa: 1.2,
   happy: 0.8,
   surprised: 1.0,
   ou: 1.2,
+}
+
+// Dead-zone: MediaPipe always returns small non-zero scores for relaxed faces.
+// Any raw score below this is treated as zero so the mouth stays closed at rest.
+const BLENDSHAPE_THRESHOLD: Record<string, number> = {
+  aa: 0.18,
+  ou: 0.15,
+  happy: 0.12,
+  surprised: 0.15,
 }
 
 function lerp(a: number, b: number, t: number): number {
@@ -63,8 +72,10 @@ export function processTrackingResult(result: FaceLandmarkerResult): FaceTrackin
     for (const cat of result.faceBlendshapes[0].categories) {
       const vrmName = BLENDSHAPE_MAP[cat.categoryName]
       if (!vrmName) continue
+      const threshold = BLENDSHAPE_THRESHOLD[vrmName] ?? 0
+      const score = cat.score < threshold ? 0 : cat.score - threshold
       // Take max when multiple MP blendshapes map to same VRM expression
-      rawBlendshapes[vrmName] = Math.max(rawBlendshapes[vrmName] ?? 0, cat.score)
+      rawBlendshapes[vrmName] = Math.max(rawBlendshapes[vrmName] ?? 0, score)
     }
   }
 

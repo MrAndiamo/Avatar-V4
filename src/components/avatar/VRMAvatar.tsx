@@ -82,14 +82,15 @@ export function VRMAvatar({ url }: VRMAvatarProps) {
       if (trackingData) applyTrackingToVRM(vrm, trackingData)
       applyPoseToVRM(vrm)
 
-      // AR positioning: move + scale VRM to overlay user in webcam feed
+      // AR positioning: scale drives apparent depth — smaller scale = further away.
+      // No Z manipulation needed; perspective projection handles the depth illusion.
       const transform = computeVRMTransform(camera)
       if (transform) {
-        vrm.scene.position.x = lerp(vrm.scene.position.x, transform.position.x, 0.15)
-        vrm.scene.position.y = lerp(vrm.scene.position.y, transform.position.y, 0.15)
-        vrm.scene.scale.x = lerp(vrm.scene.scale.x, transform.scale, 0.15)
-        vrm.scene.scale.y = lerp(vrm.scene.scale.y, transform.scale, 0.15)
-        vrm.scene.scale.z = lerp(vrm.scene.scale.z, transform.scale, 0.15)
+        vrm.scene.position.x = lerp(vrm.scene.position.x, transform.position.x, 0.35)
+        vrm.scene.position.y = lerp(vrm.scene.position.y, transform.position.y, 0.35)
+        vrm.scene.scale.x = lerp(vrm.scene.scale.x, transform.scale, 0.35)
+        vrm.scene.scale.y = lerp(vrm.scene.scale.y, transform.scale, 0.35)
+        vrm.scene.scale.z = lerp(vrm.scene.scale.z, transform.scale, 0.35)
       }
     } else {
       // Drift back to neutral when tracking is off
